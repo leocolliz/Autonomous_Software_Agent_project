@@ -1,0 +1,11 @@
+# Dependency directories
+node_modules/
+*/node_modules/
+*/*/node_modules/
+*/*/*/node_modules/
+
+# IDE
+.vscode
+
+# dotenv local environment variables file
+.env.local
