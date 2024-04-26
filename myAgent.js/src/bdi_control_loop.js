@@ -41,15 +41,39 @@ function agentLoop() {
     /**
      * Options
      */
+    const options = [];
+    for(const [id, parcel] of parcels.entries()){
+
+        if(parcel.carriedBy) continue;
+        
+        options.push( {
+            desire: 'go_pick_up',
+            args: [parcel]
+        } );
+    }
 
     /**
      * Select best intention
      */
+    let best_option;
+    let nearest_distance = Number.MAX_VALUE;
+    for(const option of options){
+
+        if(option.desire != 'go_pick_up') continue;
+
+        const distance_to_option = distance(me, option.args[0]);
+        if(distance_to_option < nearest_distance) {
+            best_option = option;
+            nearest_distance = distance_to_option;
+        }
+    }
 
     /**
      * Revise/queue intention 
      */
-
+    if(best_option){
+        myAgent.queue (best_option.desire, ...best_option.args);
+    }
 }
 client.onParcelsSensing( agentLoop )
 // client.onAgentsSensing( agentLoop )
@@ -131,6 +155,35 @@ class Intention extends Promise {
 
     #started = false;
     async achieve () {
+        if(this.#started) {
+            return this;
+        }this.#started = true;
+
+        //Plan selection
+        let best_plan;
+        let best_plan_score = Number.MIN_VALUE;
+        for(const plan of plans){
+            if(plan.isApplicableTo(this.#desire)){
+                this.#current_plan = plan;
+                console.log('achieving desire', this.#desire, this.args,
+                            'with plan', plan);
+                try{
+                    const plan_res = await plan.execute(...this.#args);
+                    console.log('plan', plan, 
+                                'succesfully achieved intention', this.#desire, ...this.#args);
+                }catch (error){
+                    console.log('plan', plan, 
+                                'failed to achieved intention', this.#desire, ...this.#args);
+                    this.#reject( e );
+                }
+                
+                // const score = plan.score(this.#desire, ...this.#args);
+                // if(score > best_plan_score){
+                //     best_plan = plan;
+                //     best_plan_score = score; 
+                // }
+            }
+        }
     }
 
 }
@@ -162,9 +215,13 @@ class Plan {
 class GoPickUp extends Plan {
 
     isApplicableTo ( desire ) {
+        return desire == 'go_pick_up';
     }
 
     async execute ( {x, y} ) {
+        // TODO move to x,y
+        await this.subIntention( 'go_to', {x,y});
+        await client.pickup();
     }
 
 }
@@ -172,10 +229,15 @@ class GoPickUp extends Plan {
 class BlindMove extends Plan {
 
     isApplicableTo ( desire ) {
+        return desire == 'go_to';
     }
 
     async execute ( {x, y} ) {
-
+        while(me.x != x || me.y != y){
+            const dx = x - me.x;
+            const dy = y - me.y;
+            // TODO move rigth left up down
+        }
     }
 }
 
