@@ -1,5 +1,7 @@
 import { DeliverooApi } from "@unitn-asa/deliveroo-js-client";
-import {default as config} from '../config.js'
+import {default as config} from '../config.js';
+import { GoPickUp, BlindMove } from './plan.js';
+import { Intention } from "./intention.js";
 
 const client = new DeliverooApi(
     // 'http://localhost:8080',

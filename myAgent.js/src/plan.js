@@ -1,4 +1,4 @@
-import { Intention } from "./intention";
+import { Intention } from "./intention.js";
 
 export class Plan {
 
@@ -42,7 +42,7 @@ export class Plan {
 
 }
 
-class GoPickUp extends Plan {
+export class GoPickUp extends Plan {
 
     static isApplicableTo ( go_pick_up, x, y, id ) {
         return go_pick_up == 'go_pick_up';
@@ -59,7 +59,7 @@ class GoPickUp extends Plan {
 
 }
 
-class BlindMove extends Plan {
+export class BlindMove extends Plan {
 
     static isApplicableTo ( go_to, x, y ) {
         return go_to == 'go_to';
