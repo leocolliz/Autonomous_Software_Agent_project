@@ -18,3 +18,32 @@ export class Plan {
     }
 
 }
+
+class GoPickUp extends Plan {
+
+    isApplicableTo ( desire ) {
+        return desire == 'go_pick_up';
+    }
+
+    async execute ( {x, y} ) {
+        // TODO move to x,y
+        await this.subIntention( 'go_to', {x,y});
+        await client.pickup();
+    }
+
+}
+
+class BlindMove extends Plan {
+
+    isApplicableTo ( desire ) {
+        return desire == 'go_to';
+    }
+
+    async execute ( {x, y} ) {
+        while(me.x != x || me.y != y){
+            const dx = x - me.x;
+            const dy = y - me.y;
+            // TODO move rigth left up down
+        }
+    }
+}

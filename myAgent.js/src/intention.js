@@ -28,19 +28,29 @@ export class Intention extends Promise {
         this.#started = true;
 
 
+        //Plan selection
         let best_plan;
         let best_plan_score = Number.MIN_VALUE;
-        for( const plan of plans ){
-            if ( plan.isApplicableTo( this.#desire ) ) {
+        for(const plan of plans){
+            if(plan.isApplicableTo(this.#desire)){
                 this.#current_plan = plan;
-                console.log('achieving desire', this.#desire, ...this.#args, 'with plan', this.#current_plan);
-               
-                try {
-                    const plan_res = this.#current_plan.execute( ...args );
-                    console.log('plan', plan, 'succesfully achieved intention', this.#desire, ...this.#args);
-                } catch (error) {
-                    console.log('plan', plan, 'failed to achieve intention', this.#desire, ...this.#args);
+                console.log('achieving desire', this.#desire, this.args,
+                            'with plan', plan);
+                try{
+                    const plan_res = await plan.execute(...this.#args);
+                    console.log('plan', plan, 
+                                'succesfully achieved intention', this.#desire, ...this.#args);
+                }catch (error){
+                    console.log('plan', plan, 
+                                'failed to achieved intention', this.#desire, ...this.#args);
+                    this.#reject( e );
                 }
+                
+                // const score = plan.score(this.#desire, ...this.#args);
+                // if(score > best_plan_score){
+                //     best_plan = plan;
+                //     best_plan_score = score; 
+                // }
             }
         }
     }
