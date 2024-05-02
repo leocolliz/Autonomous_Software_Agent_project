@@ -1,7 +1,7 @@
 import { Intention } from "./intention.js";
-import { me } from "./intention_revision.js";
-import { client } from "./intention_revision.js";
-export class Plan {
+import { me, client } from "./intention_revision.js";
+
+class Plan {
 
     // This is used to stop the plan
     #stopped = false;
@@ -60,6 +60,21 @@ export class GoPickUp extends Plan {
 
 }
 
+export class GoDeliver extends Plan {
+    static isApplicableTo ( go_deliver, x, y ) {
+        return go_deliver == 'go_deliver';
+    }
+
+    async execute() {
+        if ( this.stopped ) throw ['stopped']; // if stopped then quit
+        await this.subIntention( ['go_to', x, y] );
+        if ( this.stopped ) throw ['stopped']; // if stopped then quit
+        await client.putdown()
+        if ( this.stopped ) throw ['stopped']; // if stopped then quit
+        return true;
+    }
+}
+
 export class BlindMove extends Plan {
 
     static isApplicableTo ( go_to, x, y ) {
@@ -75,7 +90,7 @@ export class BlindMove extends Plan {
             let status_y = false;
             
             console.log('me', me, 'xy', x, y);
-
+            
             if ( x > me.x ){
                 console.log("MOVING right");
                 status_x = await client.move('right')

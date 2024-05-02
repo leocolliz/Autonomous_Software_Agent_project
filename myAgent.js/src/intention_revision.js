@@ -39,6 +39,30 @@ client.onConfig( (param) => {
     // console.log(param);
 } )
 
+/** 
+ * @type [x, y, delivery, parcelSpawner] 
+ */
+    
+let map = [];
+let mapWidth;
+let mapHeight;
+let deliverySpots = [];
+
+client.onMap( ( width, height, data ) => {
+    
+    mapWidth = width;
+    mapHeight = height;
+
+    map = data;
+
+    for(let elem of map){
+        if(elem.delivery){
+            deliverySpots.push([elem.x, elem.y]);
+        }
+    }
+    console.log(map);
+    console.log(deliverySpots);
+})
 
 
 /**
