@@ -1,9 +1,9 @@
 import { DeliverooApi } from "@unitn-asa/deliveroo-js-client";
 import {default as config} from '../config.js';
-import { GoPickUp, BlindMove } from './plan.js';
+// import { GoPickUp, BlindMove } from './plan.js';
 import { Intention } from "./intention.js";
 
-const client = new DeliverooApi(
+export const client = new DeliverooApi(
     // 'http://localhost:8080',
     // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA5ZmQ2NDllNzZlIiwibmFtZSI6Im1hcmNvIiwiaWF0IjoxNjc5OTk3Njg2fQ.6_zmgL_C_9QgoOX923ESvrv2i2_1bgL_cWjMw4M7ah4'
     config.host,
@@ -21,7 +21,7 @@ function distance( {x:x1, y:y1}, {x:x2, y:y2}) {
 /**
  * Beliefset revision function
  */
-const me = {};
+export const me = {};
 client.onYou( ( {id, name, x, y, score} ) => {
     me.id = id
     me.name = name
@@ -193,12 +193,3 @@ class IntentionRevisionRevise extends IntentionRevision {
 const myAgent = new IntentionRevisionReplace();     // when I push an intention, it replace the old one
 // const myAgent = new IntentionRevisionRevise();   
 myAgent.loop();
-
-/**
- * Plan library
- */
-const planLibrary = [];
-
-// plan classes are added to plan library 
-planLibrary.push( GoPickUp )
-planLibrary.push( BlindMove )

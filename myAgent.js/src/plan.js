@@ -1,11 +1,12 @@
 import { Intention } from "./intention.js";
-
+import { me } from "./intention_revision.js";
+import { client } from "./intention_revision.js";
 export class Plan {
 
     // This is used to stop the plan
     #stopped = false;
     stop () {
-        // this.log( 'stop plan' );
+        this.log( 'stop plan' );
         this.#stopped = true;
         for ( const i of this.#sub_intentions ) {
             i.stop();
@@ -68,21 +69,22 @@ export class BlindMove extends Plan {
     async execute ( go_to, x, y ) {
 
         while ( me.x != x || me.y != y ) {
-
             if ( this.stopped ) throw ['stopped']; // if stopped then quit
-
+            
             let status_x = false;
             let status_y = false;
             
-            // this.log('me', me, 'xy', x, y);
+            console.log('me', me, 'xy', x, y);
 
-            if ( x > me.x )
+            if ( x > me.x ){
+                console.log("MOVING right");
                 status_x = await client.move('right')
                 // status_x = await this.subIntention( 'go_to', {x: me.x+1, y: me.y} );
-            else if ( x < me.x )
+            }else if ( x < me.x ){
+                console.log("MOVING left");
                 status_x = await client.move('left')
                 // status_x = await this.subIntention( 'go_to', {x: me.x-1, y: me.y} );
-
+            }
             if (status_x) {
                 me.x = status_x.x;
                 me.y = status_x.y;
@@ -90,12 +92,16 @@ export class BlindMove extends Plan {
 
             if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
-            if ( y > me.y )
+            if ( y > me.y ){
+                console.log("MOVING up");
                 status_y = await client.move('up')
                 // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y+1} );
-            else if ( y < me.y )
+            }
+            else if ( y < me.y ){
+                console.log("MOVING down");
                 status_y = await client.move('down')
                 // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y-1} );
+            }
 
             if (status_y) {
                 me.x = status_y.x;

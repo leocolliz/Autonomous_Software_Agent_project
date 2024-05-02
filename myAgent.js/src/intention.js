@@ -1,3 +1,4 @@
+import { GoPickUp, BlindMove } from './plan.js';
 /**
  * Intention
  */
@@ -63,7 +64,7 @@ export class Intention {
             // if plan is 'statically' applicable
             if ( planClass.isApplicableTo( ...this.predicate ) ) {
                 // plan is instantiated
-                this.#current_plan = new planClass(this.parent);
+                this.#current_plan = new planClass(this.#parent);
                 this.log('achieving intention', ...this.predicate, 'with plan', planClass.name);
                 // and plan is executed and result returned
                 try {
@@ -87,3 +88,12 @@ export class Intention {
     }
 
 }
+
+/**
+ * Plan library
+ */
+const planLibrary = [];
+
+// plan classes are added to plan library 
+planLibrary.push( GoPickUp )
+planLibrary.push( BlindMove )
