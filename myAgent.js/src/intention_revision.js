@@ -10,7 +10,7 @@ export const client = new DeliverooApi(
     config.token
 )
 
-function distance( {x:x1, y:y1}, {x:x2, y:y2}) {
+export function distance( {x:x1, y:y1}, {x:x2, y:y2}) {
     const dx = Math.abs( Math.round(x1) - Math.round(x2) )
     const dy = Math.abs( Math.round(y1) - Math.round(y2) )
     return dx + dy;
@@ -46,10 +46,9 @@ client.onConfig( (param) => {
 let map = [];
 let mapWidth;
 let mapHeight;
-let deliverySpots = [];
+export let deliverySpots = [];
 
 client.onMap( ( width, height, data ) => {
-    
     mapWidth = width;
     mapHeight = height;
 
@@ -80,7 +79,6 @@ client.onParcelsSensing( parcels => {
         if ( ! parcel.carriedBy )
             options.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] );
             // myAgent.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] )
-
     /**
      * Options filtering
      */
@@ -100,8 +98,10 @@ client.onParcelsSensing( parcels => {
     /**
      * Best option is selected
      */
-    if ( best_option )
+    if ( best_option ){
         myAgent.push( best_option )
+        // myAgent.push(['go_deliver'])
+        }
 
 } )
 // client.onAgentsSensing( agentLoop )

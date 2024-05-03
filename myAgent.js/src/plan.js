@@ -1,5 +1,5 @@
 import { Intention } from "./intention.js";
-import { me, client } from "./intention_revision.js";
+import { me, client, deliverySpots, distance } from "./intention_revision.js";
 
 class Plan {
 
@@ -55,19 +55,30 @@ export class GoPickUp extends Plan {
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await client.pickup()
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
+        await this.subIntention( ['go_deliver'] );
+        if ( this.stopped ) throw ['stopped']; // if stopped then quit
         return true;
     }
-
+    
 }
 
 export class GoDeliver extends Plan {
-    static isApplicableTo ( go_deliver, x, y ) {
+    static isApplicableTo ( go_deliver ) {
         return go_deliver == 'go_deliver';
     }
-
+    
     async execute() {
+        let nearest = Number.MAX_VALUE;
+        let best_spot = [];
+        for (const deliverySpot of deliverySpots) {
+            let current_d = distance( {x:deliverySpot[0], y:deliverySpot[1]}, me )
+            if ( current_d < nearest ) {
+                best_spot = deliverySpot;
+                nearest = current_d
+            }
+        }
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-        await this.subIntention( ['go_to', x, y] );
+        await this.subIntention( ['go_to', best_spot[0], best_spot[1]] );
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await client.putdown()
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
@@ -92,11 +103,9 @@ export class BlindMove extends Plan {
             console.log('me', me, 'xy', x, y);
             
             if ( x > me.x ){
-                console.log("MOVING right");
                 status_x = await client.move('right')
                 // status_x = await this.subIntention( 'go_to', {x: me.x+1, y: me.y} );
             }else if ( x < me.x ){
-                console.log("MOVING left");
                 status_x = await client.move('left')
                 // status_x = await this.subIntention( 'go_to', {x: me.x-1, y: me.y} );
             }
@@ -108,12 +117,10 @@ export class BlindMove extends Plan {
             if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
             if ( y > me.y ){
-                console.log("MOVING up");
                 status_y = await client.move('up')
                 // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y+1} );
             }
             else if ( y < me.y ){
-                console.log("MOVING down");
                 status_y = await client.move('down')
                 // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y-1} );
             }

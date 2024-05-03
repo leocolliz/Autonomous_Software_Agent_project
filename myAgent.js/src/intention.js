@@ -1,4 +1,4 @@
-import { GoPickUp, BlindMove } from './plan.js';
+import { GoPickUp, BlindMove, GoDeliver } from './plan.js';
 /**
  * Intention
  */
@@ -97,3 +97,4 @@ const planLibrary = [];
 // plan classes are added to plan library 
 planLibrary.push( GoPickUp )
 planLibrary.push( BlindMove )
+planLibrary.push( GoDeliver )
