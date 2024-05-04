@@ -1,7 +1,11 @@
 import { DeliverooApi } from "@unitn-asa/deliveroo-js-client";
+
 import {default as config} from '../config.js';
 // import { GoPickUp, BlindMove } from './plan.js';
 import { Intention } from "./intention.js";
+
+import UndirectedGraph from 'graphology';
+import dijkstra from 'graphology-shortest-path';
 
 export const client = new DeliverooApi(
     // 'http://localhost:8080',
@@ -11,12 +15,21 @@ export const client = new DeliverooApi(
 )
 
 export function distance( {x:x1, y:y1}, {x:x2, y:y2}) {
-    const dx = Math.abs( Math.round(x1) - Math.round(x2) )
-    const dy = Math.abs( Math.round(y1) - Math.round(y2) )
-    return dx + dy;
+    // const dx = Math.abs( Math.round(x1) - Math.round(x2) )
+    // const dy = Math.abs( Math.round(y1) - Math.round(y2) )
+    // return dx + dy;
+    
+    let path = dijkstra.bidirectional(mapGraph, Math.round(x1) + "-" + Math.round(y1), Math.round(x2) + "-" + Math.round(y2))
+    
+    if(!path){
+        if(mapGraph.hasNode(Math.round(x1) + "-" + Math.round(y1)) && mapGraph.hasNode(Math.round(x2) + "-" + Math.round(y2))){
+            console.log("POSIZIONI SBAGLIATE:", Math.round(x1) + "-" + Math.round(y1), Math.round(x2) + "-" + Math.round(y2));
+        }
+        return Number.MAX_VALUE;
+    }
+    
+    return path.length - 1;
 }
-
-
 
 /**
  * Beliefset revision function
@@ -43,24 +56,36 @@ client.onConfig( (param) => {
  * @type [x, y, delivery, parcelSpawner] 
  */
     
-let map = [];
 let mapWidth;
 let mapHeight;
 export let deliverySpots = [];
+export const mapGraph = new UndirectedGraph();
 
 client.onMap( ( width, height, data ) => {
     mapWidth = width;
     mapHeight = height;
-
-    map = data;
-
-    for(let elem of map){
-        if(elem.delivery){
-            deliverySpots.push([elem.x, elem.y]);
-        }
+    let nodeId = new String;
+    for(let tile of data){
+        nodeId = tile.x + "-" + tile.y;
+        mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, delivery:tile.delivery });
+        
+        mapGraph.forEachNode((node, attributes) => {
+            if(node != nodeId){
+                if((attributes.x == tile.x && (attributes.y == tile.y+1 || attributes.y == tile.y-1)) || (attributes.y == tile.y && (attributes.x == tile.x+1 || attributes.x == tile.x-1))){
+                    mapGraph.addUndirectedEdge(nodeId,node);
+                }
+            }
+        });
     }
-    console.log(map);
-    console.log(deliverySpots);
+
+    let buffer = mapGraph.filterNodes((node, attributes) => {
+        return attributes.delivery;
+    })
+    for(let spot of buffer){
+        deliverySpots.push(spot.split("-"));
+    }
+
+    // console.log(mapGraph);
 })
 
 
@@ -74,6 +99,7 @@ client.onParcelsSensing( parcels => {
     /**
      * Options generation
      */
+
     const options = []
     for (const parcel of parcels.values())
         if ( ! parcel.carriedBy )
