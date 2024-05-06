@@ -8,16 +8,11 @@ import UndirectedGraph from 'graphology';
 import dijkstra from 'graphology-shortest-path';
 
 export const client = new DeliverooApi(
-    // 'http://localhost:8080',
-    // 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA5ZmQ2NDllNzZlIiwibmFtZSI6Im1hcmNvIiwiaWF0IjoxNjc5OTk3Njg2fQ.6_zmgL_C_9QgoOX923ESvrv2i2_1bgL_cWjMw4M7ah4'
     config.host,
     config.token
 )
 
 export function distance( {x:x1, y:y1}, {x:x2, y:y2}) {
-    // const dx = Math.abs( Math.round(x1) - Math.round(x2) )
-    // const dy = Math.abs( Math.round(y1) - Math.round(y2) )
-    // return dx + dy;
     
     let path = dijkstra.bidirectional(mapGraph, Math.round(x1) + "-" + Math.round(y1), Math.round(x2) + "-" + Math.round(y2))
     
@@ -51,13 +46,10 @@ client.onParcelsSensing( async ( perceived_parcels ) => {
 client.onConfig( (param) => {
     // console.log(param);
 } )
-
-/** 
- * @type [x, y, delivery, parcelSpawner] 
- */
     
 let mapWidth;
 let mapHeight;
+let center = { x:Number.MAX_VALUE, y:Number.MAX_VALUE};
 export let deliverySpots = [];
 export const mapGraph = new UndirectedGraph();
 
@@ -68,7 +60,12 @@ client.onMap( ( width, height, data ) => {
     for(let tile of data){
         nodeId = tile.x + "-" + tile.y;
         mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, delivery:tile.delivery });
-        
+        if(tile.x < mapWidth/2){
+            if(center.x - mapWidth/2 > tile.x - mapWidth/2 && center.y - mapHeight/2 > tile.y - mapHeight/2){
+                center.x = tile.x;
+                center.y = tile.y;
+            }
+        }
         mapGraph.forEachNode((node, attributes) => {
             if(node != nodeId){
                 if((attributes.x == tile.x && (attributes.y == tile.y+1 || attributes.y == tile.y-1)) || (attributes.y == tile.y && (attributes.x == tile.x+1 || attributes.x == tile.x-1))){
@@ -84,18 +81,16 @@ client.onMap( ( width, height, data ) => {
     for(let spot of buffer){
         deliverySpots.push(spot.split("-"));
     }
-
-    // console.log(mapGraph);
 })
-
 
 /**
  * Options generation and filtering function
  */
+export let carriedParcels = [];
 client.onParcelsSensing( parcels => {
 
     // TODO revisit beliefset revision so to trigger option generation only in the case a new parcel is observed
-
+    
     /**
      * Options generation
      */
@@ -105,29 +100,46 @@ client.onParcelsSensing( parcels => {
         if ( ! parcel.carriedBy )
             options.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] );
             // myAgent.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] )
+
     /**
      * Options filtering
      */
     let best_option;
-    let nearest = Number.MAX_VALUE;
+    let nearestParcel = Number.MAX_VALUE;
     for (const option of options) {
         if ( option[0] == 'go_pick_up' ) {
             let [go_pick_up,x,y,id] = option;
             let current_d = distance( {x, y}, me )
-            if ( current_d < nearest ) {
+            if ( current_d < nearestParcel ) {
                 best_option = option
-                nearest = current_d
+                nearestParcel = current_d
             }
         }
     }
 
+    // let nearestDeliver = Number.MAX_VALUE;
+    //     let best_spot = [];
+    //     for (const deliverySpot of deliverySpots) {
+    //         let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, me )
+    //         if ( current_d < nearestDeliver ) {
+    //             best_spot = deliverySpot;
+    //             nearestDeliver = current_d
+    //         }
+    //     }
+
+    // if(best_option && carriedParcels > 0){
+    //     if(distance({ x:best_option[1], y:best_option[2]}, me) > distance({x:best_spot[0],y:best_spot[1]}, me)){
+    //         best_option = ['go_deliver'];
+    //     }
+    // }
     /**
      * Best option is selected
      */
+
     if ( best_option ){
-        myAgent.push( best_option )
-        // myAgent.push(['go_deliver'])
-        }
+        myAgent.push( best_option );
+        // myAgent.push( [ 'go_deliver' ]);
+    }
 
 } )
 // client.onAgentsSensing( agentLoop )
@@ -158,7 +170,7 @@ class IntentionRevision {
                 // TODO this hard-coded implementation is an example
                 let id = intention.predicate[2]
                 let p = parcels.get(id)
-                if ( p && p.carriedBy ) {
+                if ( p && p.carriedBy != me.id) {
                     console.log( 'Skipping intention because no more valid', intention.predicate )
                     continue;
                 }
@@ -173,6 +185,10 @@ class IntentionRevision {
                 // Remove from the queue
                 this.intention_queue.shift();
             }
+            // else if( this.intention_queue.length == 0 ){
+            //     let intention = { predicate:['go_to', center.x, center.y] };
+            //     await intention.achieve()
+            // }
             // Postpone next iteration at setImmediate
             await new Promise( res => setImmediate( res ) );
         }
@@ -207,7 +223,7 @@ class IntentionRevisionReplace extends IntentionRevision {
 
         // Check if already queued
         const last = this.intention_queue.at( this.intention_queue.length - 1 );
-        if ( last && last.predicate.join(' ') == predicate.join(' ') ) {
+        if ( last && last.predicate.join(' ') == predicate.join(' ') && last.predicate[0] != 'go_deliver' ) {
             return; // intention is already being achieved
         }
         

@@ -1,7 +1,6 @@
 import { Intention } from "./intention.js";
-import { me, client, deliverySpots, distance, mapGraph } from "./intention_revision.js";
+import { me, client, deliverySpots, distance, mapGraph, carriedParcels } from "./intention_revision.js";
 
-import UndirectedGraph from 'graphology';
 import dijkstra from 'graphology-shortest-path';
 
 class Plan {
@@ -56,16 +55,17 @@ export class GoPickUp extends Plan {
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await this.subIntention( ['go_to', x, y] );
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-        await client.pickup()
+        await client.pickup();
+        // carriedParcels.push(id);
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-        await this.subIntention( ['go_deliver'] );
+        await this.subIntention( ['go_deliver'])
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         return true;
     }
     
 }
 
-export class GoDeliver extends Plan {
+export class GoDeliver extends Plan {21
     static isApplicableTo ( go_deliver ) {
         return go_deliver == 'go_deliver';
     }
@@ -83,12 +83,14 @@ export class GoDeliver extends Plan {
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await this.subIntention( ['go_to', parseInt(best_spot[0]), parseInt(best_spot[1])] );
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-        await client.putdown()
+        console.log("CARRYING: ", carriedParcels);
+        await client.putdown();
+        carriedParcels.length = 0;
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         return true;
     }
 }
-
+export let path = [];
 export class BlindMove extends Plan {
 
     static isApplicableTo ( go_to, x, y ) {
@@ -102,11 +104,10 @@ export class BlindMove extends Plan {
         let myPos = Math.round(me.x) + "-" +  Math.round(me.y);
         let dest = Math.round(x) + "-" + Math.round(y);
 
-        let path = dijkstra.bidirectional(mapGraph, myPos, dest);
-        console.log("PATH: ", path);
-        path.shift();           //the algorithm returns an array with the current position at [0], we need to remove it
+        path = dijkstra.bidirectional(mapGraph, myPos, dest);
+        path.shift();                          // the algorithm returns an array with the current position at [0], we need to remove it
         let nextCoordinates; 
-
+        // console.log("PATH: ", path);
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
         for(let nextDest of path){
@@ -124,51 +125,6 @@ export class BlindMove extends Plan {
 
             if ( this.stopped ) throw ['stopped']; // if stopped then quit
         }
-
-        // while ( me.x != x || me.y != y ) {
-        //     if ( this.stopped ) throw ['stopped']; // if stopped then quit
-            
-        //     let status_x = false;
-        //     let status_y = false;
-            
-        //     console.log('me', me, 'xy', x, y);
-            
-        //     if ( x > me.x ){
-        //         status_x = await client.move('right')
-        //         // status_x = await this.subIntention( 'go_to', {x: me.x+1, y: me.y} );
-        //     }else if ( x < me.x ){
-        //         status_x = await client.move('left')
-        //         // status_x = await this.subIntention( 'go_to', {x: me.x-1, y: me.y} );
-        //     }
-        //     if (status_x) {
-        //         me.x = status_x.x;
-        //         me.y = status_x.y;
-        //     }
-
-        //     if ( this.stopped ) throw ['stopped']; // if stopped then quit
-
-        //     if ( y > me.y ){
-        //         status_y = await client.move('up')
-        //         // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y+1} );
-        //     }
-        //     else if ( y < me.y ){
-        //         status_y = await client.move('down')
-        //         // status_x = await this.subIntention( 'go_to', {x: me.x, y: me.y-1} );
-        //     }
-
-        //     if (status_y) {
-        //         me.x = status_y.x;
-        //         me.y = status_y.y;
-        //     }
-            
-        //     if ( ! status_x && ! status_y) {
-        //         this.log('stucked');
-        //         throw 'stucked';
-        //     } else if ( me.x == x && me.y == y ) {
-        //         // this.log('target reached');
-        //     }
-            
-        // }
 
         return true;
 
