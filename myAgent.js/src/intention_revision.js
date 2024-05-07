@@ -61,7 +61,7 @@ client.onMap( ( width, height, data ) => {
         nodeId = tile.x + "-" + tile.y;
         mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, delivery:tile.delivery });
         if(tile.x < mapWidth/2){
-            if(center.x - mapWidth/2 > tile.x - mapWidth/2 && center.y - mapHeight/2 > tile.y - mapHeight/2){
+            if(Math.abs(center.x - Math.round(mapWidth/2)) > Math.abs(tile.x - Math.round(mapWidth/2)) && Math.abs(center.y - Math.round(mapHeight/2)) > Math.abs(tile.y - Math.round(mapHeight/2))){
                 center.x = tile.x;
                 center.y = tile.y;
             }
@@ -81,6 +81,7 @@ client.onMap( ( width, height, data ) => {
     for(let spot of buffer){
         deliverySpots.push(spot.split("-"));
     }
+    console.log(center);
 })
 
 /**
