@@ -160,6 +160,8 @@ class IntentionRevision {
 
     async loop ( ) {
         while ( true ) {
+            // console.log("INTENTION QUEUE LENGTH: ", this.intention_queue.length);
+
             // Consumes intention_queue if not empty
             if ( this.intention_queue.length > 0 ) {
                 console.log( 'intentionRevision.loop', this.intention_queue.map(i=>i.predicate) );
@@ -185,13 +187,22 @@ class IntentionRevision {
 
                 // Remove from the queue
                 this.intention_queue.shift();
+                await new Promise( res => setImmediate( res ) );
+            } 
+            else if (this.intention_queue.length == 0) {
+                const intention = new Intention(this.myAgent, ['go_to', 3, 3]);
+                // const intention = { predicate:['go_to', center.x, center.y] };
+                this.push(intention.predicate);
+                //this.loop();
+                // await intention.achieve()
+                // .catch( error => {
+                //     // console.log( 'Failed intention', ...intention.predicate, 'with error:', ...error )
+                // } );
             }
-            // else if( this.intention_queue.length == 0 ){
-            //     let intention = { predicate:['go_to', center.x, center.y] };
-            //     await intention.achieve()
-            // }
+            
+            
             // Postpone next iteration at setImmediate
-            await new Promise( res => setImmediate( res ) );
+            
         }
     }
 
@@ -221,13 +232,15 @@ class IntentionRevisionQueue extends IntentionRevision {
 class IntentionRevisionReplace extends IntentionRevision {
 
     async push ( predicate ) {
+        console.log("step 1");
 
         // Check if already queued
         const last = this.intention_queue.at( this.intention_queue.length - 1 );
         if ( last && last.predicate.join(' ') == predicate.join(' ') && last.predicate[0] != 'go_deliver' ) {
+            console.log("ciao ciao");
             return; // intention is already being achieved
         }
-        
+        console.log("step 2");
         console.log( 'IntentionRevisionReplace.push', predicate );
         const intention = new Intention( this, predicate );
         this.intention_queue.push( intention );

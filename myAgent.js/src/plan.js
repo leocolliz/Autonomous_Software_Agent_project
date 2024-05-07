@@ -56,6 +56,7 @@ export class GoPickUp extends Plan {
         await this.subIntention( ['go_to', x, y] );
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await client.pickup();
+        //console.log('Adesso vado a consegnare...')
         // carriedParcels.push(id);
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await this.subIntention( ['go_deliver'])
@@ -98,11 +99,13 @@ export class BlindMove extends Plan {
     }
 
     async execute ( go_to, x, y ) {
+        // console.log("I'm moving...");
 
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
         let myPos = Math.round(me.x) + "-" +  Math.round(me.y);
         let dest = Math.round(x) + "-" + Math.round(y);
+        // console.log("I'm moving 2...");
 
         path = dijkstra.bidirectional(mapGraph, myPos, dest);
         path.shift();                          // the algorithm returns an array with the current position at [0], we need to remove it
@@ -111,13 +114,14 @@ export class BlindMove extends Plan {
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
         for(let nextDest of path){
+            // console.log('MUOVO: ', nextDest);
             nextCoordinates = nextDest.split("-");
             
             if( nextCoordinates[0] > me.x){
                 await client.move('right');
             }else if(nextCoordinates[0] < me.x){
                 await client.move('left');
-            }else if( nextCoordinates[1] > me.y){
+            } if( nextCoordinates[1] > me.y){
                 await client.move('up');
             }else if(nextCoordinates[1] < me.y){
                 await client.move('down');

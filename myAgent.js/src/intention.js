@@ -68,6 +68,7 @@ export class Intention {
                 this.log('achieving intention', ...this.predicate, 'with plan', planClass.name);
                 // and plan is executed and result returned
                 try {
+                    // console.log("I'm trying...");
                     const plan_res = await this.#current_plan.execute( ...this.predicate );
                     this.log( 'succesful intention', ...this.predicate, 'with plan', planClass.name, 'with result:', plan_res );
                     return plan_res
