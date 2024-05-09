@@ -103,8 +103,8 @@ export class BlindMove extends Plan {
 
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
-        let myPos = Math.round(me.x) + "-" +  Math.round(me.y);
-        let dest = Math.round(x) + "-" + Math.round(y);
+        let myPos = Math.floor(me.x) + "-" +  Math.floor(me.y);
+        let dest = Math.floor(x) + "-" + Math.floor(y);
         // console.log("I'm moving 2...");
 
         path = dijkstra.bidirectional(mapGraph, myPos, dest);
