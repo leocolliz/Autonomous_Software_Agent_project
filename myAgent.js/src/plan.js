@@ -117,11 +117,13 @@ export class BlindMove extends Plan {
             // console.log('MUOVO: ', nextDest);
             nextCoordinates = nextDest.split("-");
             
+            // TODO deliver if on a delivery spot
+
             if( nextCoordinates[0] > me.x){
                 await client.move('right');
             }else if(nextCoordinates[0] < me.x){
                 await client.move('left');
-            } if( nextCoordinates[1] > me.y){
+            }else if( nextCoordinates[1] > me.y){
                 await client.move('up');
             }else if(nextCoordinates[1] < me.y){
                 await client.move('down');

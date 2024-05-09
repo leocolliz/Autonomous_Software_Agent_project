@@ -3,6 +3,7 @@ import { DeliverooApi } from "@unitn-asa/deliveroo-js-client";
 import {default as config} from '../config.js';
 // import { GoPickUp, BlindMove } from './plan.js';
 import { Intention } from "./intention.js";
+import { path } from "./plan.js";
 
 import UndirectedGraph from 'graphology';
 import dijkstra from 'graphology-shortest-path';
@@ -36,6 +37,11 @@ client.onYou( ( {id, name, x, y, score} ) => {
     me.x = x
     me.y = y
     me.score = score
+    for(let spot of deliverySpots){
+        if(me.x == spot[0] && me.y == spot[1]){
+            client.putdown();
+        }
+    }
 } )
 const parcels = new Map();
 client.onParcelsSensing( async ( perceived_parcels ) => {
@@ -62,8 +68,8 @@ client.onMap( ( width, height, data ) => {
         mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, delivery:tile.delivery });
         if(tile.x < mapWidth/2){
             if(Math.abs(center.x - Math.round(mapWidth/2)) > Math.abs(tile.x - Math.round(mapWidth/2)) && Math.abs(center.y - Math.round(mapHeight/2)) > Math.abs(tile.y - Math.round(mapHeight/2))){
-                center.x = tile.x;
-                center.y = tile.y;
+                center.x = Math.round(tile.x);
+                center.y = Math.round(tile.y);
             }
         }
         mapGraph.forEachNode((node, attributes) => {
@@ -95,13 +101,22 @@ client.onParcelsSensing( parcels => {
     /**
      * Options generation
      */
-
+    // let score = 0;
     const options = []
-    for (const parcel of parcels.values())
-        if ( ! parcel.carriedBy )
+    for (const parcel of parcels.values()){
+        if ( ! parcel.carriedBy ){
             options.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] );
+            for(const tile of path){
+                if(tile.x == parcel.x && tile.y == parcel.y){
+                    myAgent.push( [ 'go_pick_up', tile.x, tile.y, parcel.id ] );
+                }
+            }
+        }
             // myAgent.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] )
-
+        // else if ( parcel.carriedBy == me.id){
+        //     score += parcel.reward;
+        // }
+    }
     /**
      * Options filtering
      */
@@ -187,22 +202,35 @@ class IntentionRevision {
 
                 // Remove from the queue
                 this.intention_queue.shift();
-                await new Promise( res => setImmediate( res ) );
+                // await new Promise( res => setImmediate( res ) );
             } 
             else if (this.intention_queue.length == 0) {
-                const intention = new Intention(this.myAgent, ['go_to', 3, 3]);
-                // const intention = { predicate:['go_to', center.x, center.y] };
-                this.push(intention.predicate);
-                //this.loop();
+
+                let furthest = 0; 
+                let best_spot = []; 
+                for (const deliverySpot of deliverySpots) { 
+                    let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, me ) 
+                    if ( current_d > furthest ) { 
+                        best_spot = deliverySpot; 
+                        furthest = current_d 
+                    } 
+                } 
+                console.log('BEST SPOT: ', best_spot); 
+                const intention = new Intention(this.myAgent, ['go_to', best_spot[0], best_spot[1]]);
+
+                // const intention = new Intention(this.myAgent, ['go_to', center.x, center.y]);
+            // //     // const intention = { predicate:['go_to', center.x, center.y] };
+                myAgent.push(intention.predicate);
+            // //     //this.loop();
                 // await intention.achieve()
                 // .catch( error => {
-                //     // console.log( 'Failed intention', ...intention.predicate, 'with error:', ...error )
+            //         // console.log( 'Failed intention', ...intention.predicate, 'with error:', ...error )
                 // } );
             }
             
             
             // Postpone next iteration at setImmediate
-            
+            await new Promise( res => setImmediate( res ) );
         }
     }
 
@@ -222,7 +250,7 @@ class IntentionRevisionQueue extends IntentionRevision {
         if ( this.intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') ) )
             return; // intention is already queued
 
-        console.log( 'IntentionRevisionReplace.push', predicate );
+        // console.log( 'IntentionRevisionReplace.push', predicate );
         const intention = new Intention( this, predicate );
         this.intention_queue.push( intention );
     }
@@ -232,16 +260,16 @@ class IntentionRevisionQueue extends IntentionRevision {
 class IntentionRevisionReplace extends IntentionRevision {
 
     async push ( predicate ) {
-        console.log("step 1");
+        // console.log("step 1");
 
         // Check if already queued
         const last = this.intention_queue.at( this.intention_queue.length - 1 );
         if ( last && last.predicate.join(' ') == predicate.join(' ') && last.predicate[0] != 'go_deliver' ) {
-            console.log("ciao ciao");
+            // console.log("ciao ciao");
             return; // intention is already being achieved
         }
-        console.log("step 2");
-        console.log( 'IntentionRevisionReplace.push', predicate );
+        // console.log("step 2");
+        // console.log( 'IntentionRevisionReplace.push', predicate );
         const intention = new Intention( this, predicate );
         this.intention_queue.push( intention );
         
