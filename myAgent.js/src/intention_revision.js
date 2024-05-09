@@ -15,11 +15,11 @@ export const client = new DeliverooApi(
 
 export function distance( {x:x1, y:y1}, {x:x2, y:y2}) {
     
-    let path = dijkstra.bidirectional(mapGraph, Math.round(x1) + "-" + Math.round(y1), Math.round(x2) + "-" + Math.round(y2))
+    let path = dijkstra.bidirectional(mapGraph, Math.floor(x1) + "-" + Math.floor(y1), Math.floor(x2) + "-" + Math.floor(y2))
     
     if(!path){
-        if(mapGraph.hasNode(Math.round(x1) + "-" + Math.round(y1)) && mapGraph.hasNode(Math.round(x2) + "-" + Math.round(y2))){
-            console.log("POSIZIONI SBAGLIATE:", Math.round(x1) + "-" + Math.round(y1), Math.round(x2) + "-" + Math.round(y2));
+        if(mapGraph.hasNode(Math.floor(x1) + "-" + Math.floor(y1)) && mapGraph.hasNode(Math.floor(x2) + "-" + Math.floor(y2))){
+            console.log("POSIZIONI SBAGLIATE:", Math.floor(x1) + "-" + Math.floor(y1), Math.floor(x2) + "-" + Math.floor(y2));
         }
         return Number.MAX_VALUE;
     }
@@ -37,9 +37,12 @@ client.onYou( ( {id, name, x, y, score} ) => {
     me.x = x
     me.y = y
     me.score = score
-    for(let spot of deliverySpots){
-        if(me.x == spot[0] && me.y == spot[1]){
-            client.putdown();
+    
+    if(me.x % 1 == 0 && me.y % 1 == 0){
+        for(let spot of deliverySpots){
+            if(me.x == spot[0] && me.y == spot[1]){
+                client.putdown();
+            }
         }
     }
 } )
@@ -67,9 +70,9 @@ client.onMap( ( width, height, data ) => {
         nodeId = tile.x + "-" + tile.y;
         mapGraph.addNode(nodeId, { x:tile.x, y:tile.y, delivery:tile.delivery });
         if(tile.x < mapWidth/2){
-            if(Math.abs(center.x - Math.round(mapWidth/2)) > Math.abs(tile.x - Math.round(mapWidth/2)) && Math.abs(center.y - Math.round(mapHeight/2)) > Math.abs(tile.y - Math.round(mapHeight/2))){
-                center.x = Math.round(tile.x);
-                center.y = Math.round(tile.y);
+            if(Math.abs(center.x - Math.floor(mapWidth/2)) > Math.abs(tile.x - Math.floor(mapWidth/2)) && Math.abs(center.y - Math.floor(mapHeight/2)) > Math.abs(tile.y - Math.floor(mapHeight/2))){
+                center.x = Math.floor(tile.x);
+                center.y = Math.floor(tile.y);
             }
         }
         mapGraph.forEachNode((node, attributes) => {
@@ -218,11 +221,7 @@ class IntentionRevision {
                 console.log('BEST SPOT: ', best_spot); 
                 const intention = new Intention(this.myAgent, ['go_to', best_spot[0], best_spot[1]]);
 
-                // const intention = new Intention(this.myAgent, ['go_to', center.x, center.y]);
-            // //     // const intention = { predicate:['go_to', center.x, center.y] };
                 myAgent.push(intention.predicate);
-            // //     //this.loop();
-                // await intention.achieve()
                 // .catch( error => {
             //         // console.log( 'Failed intention', ...intention.predicate, 'with error:', ...error )
                 // } );
@@ -250,7 +249,6 @@ class IntentionRevisionQueue extends IntentionRevision {
         if ( this.intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') ) )
             return; // intention is already queued
 
-        // console.log( 'IntentionRevisionReplace.push', predicate );
         const intention = new Intention( this, predicate );
         this.intention_queue.push( intention );
     }
@@ -260,16 +258,12 @@ class IntentionRevisionQueue extends IntentionRevision {
 class IntentionRevisionReplace extends IntentionRevision {
 
     async push ( predicate ) {
-        // console.log("step 1");
 
         // Check if already queued
         const last = this.intention_queue.at( this.intention_queue.length - 1 );
         if ( last && last.predicate.join(' ') == predicate.join(' ') && last.predicate[0] != 'go_deliver' ) {
-            // console.log("ciao ciao");
             return; // intention is already being achieved
         }
-        // console.log("step 2");
-        // console.log( 'IntentionRevisionReplace.push', predicate );
         const intention = new Intention( this, predicate );
         this.intention_queue.push( intention );
         

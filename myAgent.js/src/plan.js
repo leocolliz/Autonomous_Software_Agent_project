@@ -84,7 +84,6 @@ export class GoDeliver extends Plan {21
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await this.subIntention( ['go_to', parseInt(best_spot[0]), parseInt(best_spot[1])] );
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-        console.log("CARRYING: ", carriedParcels);
         await client.putdown();
         carriedParcels.length = 0;
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
@@ -103,8 +102,8 @@ export class BlindMove extends Plan {
 
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
 
-        let myPos = Math.round(me.x) + "-" +  Math.round(me.y);
-        let dest = Math.round(x) + "-" + Math.round(y);
+        let myPos = Math.floor(me.x) + "-" +  Math.floor(me.y);
+        let dest = Math.floor(x) + "-" + Math.floor(y);
         // console.log("I'm moving 2...");
 
         path = dijkstra.bidirectional(mapGraph, myPos, dest);
