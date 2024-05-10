@@ -1,5 +1,5 @@
 import { Intention } from "./intention.js";
-import { me, client, deliverySpots, distance, mapGraph, carriedParcels } from "./intention_revision.js";
+import { me, client, deliverySpots, distance, mapGraph, storedParcels } from "./intention_revision.js";
 
 import dijkstra from 'graphology-shortest-path';
 
@@ -59,8 +59,8 @@ export class GoPickUp extends Plan {
         //console.log('Adesso vado a consegnare...')
         // carriedParcels.push(id);
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-        await this.subIntention( ['go_deliver'])
-        if ( this.stopped ) throw ['stopped']; // if stopped then quit
+        // await this.subIntention( ['go_deliver'])
+        // if ( this.stopped ) throw ['stopped']; // if stopped then quit
         return true;
     }
     
@@ -84,8 +84,16 @@ export class GoDeliver extends Plan {21
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         await this.subIntention( ['go_to', parseInt(best_spot[0]), parseInt(best_spot[1])] );
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
-        await client.putdown();
-        carriedParcels.length = 0;
+        console.log("DELIVERYING AT: ", best_spot[0], best_spot[1], "(INTENTION)");
+        if(me.x == best_spot[0] && me.y == best_spot[1]){
+            // for(let parcel of storedParcels){
+            //     console.log("//...", parcel[1].carriedBy)
+            //     if(parcel[1].carriedBy == me.id){
+            //         storedParcels.delete(parcel[0]);
+            //     }
+            // }
+            await client.putdown();
+        }
         if ( this.stopped ) throw ['stopped']; // if stopped then quit
         return true;
     }

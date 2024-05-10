@@ -37,19 +37,33 @@ client.onYou( ( {id, name, x, y, score} ) => {
     me.x = x
     me.y = y
     me.score = score
-    
     if(me.x % 1 == 0 && me.y % 1 == 0){
         for(let spot of deliverySpots){
-            if(me.x == spot[0] && me.y == spot[1]){
+            if(me.x == spot[0] && me.y == spot[1] && carrying){
+                console.log("DELIVERYING AT: ", spot[0], spot[1], "(ON IT)");
                 client.putdown();
+                carrying = false;
+            }
+        }
+        for(let parcel of storedParcels){
+            if(me.x == parcel[1].x && me.y == parcel[1].y && parcel[1].carriedBy != me.id){
+                client.pickup();
             }
         }
     }
 } )
-const parcels = new Map();
+export const storedParcels = new Map();
+let newParcels = true;
 client.onParcelsSensing( async ( perceived_parcels ) => {
     for (const p of perceived_parcels) {
-        parcels.set( p.id, p)
+        if(!p.carriedBy){
+            storedParcels.set( p.id, p)
+        }
+        if(!storedParcels.has(p.id)){
+            newParcels = true;
+        }else{
+            newParcels = false;
+        }
     }
 } )
 client.onConfig( (param) => {
@@ -107,26 +121,29 @@ client.onMap( ( width, height, data ) => {
 /**
  * Options generation and filtering function
  */
-export let carriedParcels = [];
+let carrying = false;
 client.onParcelsSensing( parcels => {
 
     // TODO revisit beliefset revision so to trigger option generation only in the case a new parcel is observed
+    // if((newParcels || myAgent.intention_queue.length == 0) || storedParcels.length == 0){
     
     /**
      * Options generation
      */
-    // let score = 0;
     const options = [];
     for (const parcel of parcels.values()){
         if ( ! parcel.carriedBy ){
-            options.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] );
+            options.push( [ 'go_pick_up', Math.round(parcel.x), Math.round(parcel.y), parcel.id ] );
             for(const tile of path){
                 if(tile.x == parcel.x && tile.y == parcel.y){
                     myAgent.push( [ 'go_pick_up', tile.x, tile.y, parcel.id ] );
                 }
             }
         }
-            // myAgent.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] )
+        else if( parcel.carriedBy == me.id ){
+            carrying = true;
+        }
+        // myAgent.push( [ 'go_pick_up', parcel.x, parcel.y, parcel.id ] )
         // else if ( parcel.carriedBy == me.id){
         //     score += parcel.reward;
         // }
@@ -148,21 +165,22 @@ client.onParcelsSensing( parcels => {
     }
 
 
-    // let nearestDeliver = Number.MAX_VALUE;
-    //     let best_spot = [];
-    //     for (const deliverySpot of deliverySpots) {
-    //         let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, me )
-    //         if ( current_d < nearestDeliver ) {
-    //             best_spot = deliverySpot;
-    //             nearestDeliver = current_d
-    //         }
-    //     }
+    let nearestDeliver = Number.MAX_VALUE;
+    let best_spot = [];
+    for (const deliverySpot of deliverySpots) {
+        let current_d = distance( {x:parseInt(deliverySpot[0]), y:parseInt(deliverySpot[1])}, me )
+        if ( current_d < nearestDeliver ) {
+            best_spot = deliverySpot;
+            nearestDeliver = current_d
+        }
+    }
 
-    // if(best_option && carriedParcels > 0){
-    //     if(distance({ x:best_option[1], y:best_option[2]}, me) > distance({x:best_spot[0],y:best_spot[1]}, me)){
-    //         best_option = ['go_deliver'];
-    //     }
-    // }
+    if(best_option && carrying > 0){
+        if(distance({x:best_spot[0],y:best_spot[1]}, me) < 5){
+            best_option = ['go_deliver'];
+        }
+    }
+    
     /**
      * Best option is selected
      */
@@ -171,6 +189,7 @@ client.onParcelsSensing( parcels => {
         myAgent.push( best_option );
         // myAgent.push( [ 'go_deliver' ]);
     }
+    // }
 
 } )
 // client.onAgentsSensing( agentLoop )
@@ -194,7 +213,7 @@ class IntentionRevision {
 
             // Consumes intention_queue if not empty
             if ( this.intention_queue.length > 0 ) {
-                console.log( 'intentionRevision.loop', this.intention_queue.map(i=>i.predicate) );
+                // console.log( 'intentionRevision.loop', this.intention_queue.map(i=>i.predicate) );
             
                 // Current intention
                 const intention = this.intention_queue[0];
@@ -202,7 +221,7 @@ class IntentionRevision {
                 // Is queued intention still valid? Do I still want to achieve it?
                 // TODO this hard-coded implementation is an example
                 let id = intention.predicate[2]
-                let p = parcels.get(id)
+                let p = storedParcels.get(id)
                 if ( p && p.carriedBy != me.id) {
                     console.log( 'Skipping intention because no more valid', intention.predicate )
                     continue;
@@ -219,7 +238,6 @@ class IntentionRevision {
                 this.intention_queue.shift();
             } 
             else if (this.intention_queue.length == 0) {
-                console.log("I'm going to furthest deliver zone...");
                 let furthest = 0;
                 let best_spot = [];
                 
@@ -267,9 +285,14 @@ class IntentionRevisionQueue extends IntentionRevision {
         // Check if already queued
         if ( this.intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') ) )
             return; // intention is already queued
-
+        
         const intention = new Intention( this, predicate );
-        this.intention_queue.push( intention );
+        // this.intention_queue.push( intention );
+        if(this.intention_queue[0]){
+            this.intention_queue[1] = intention;
+        }else{
+            this.intention_queue[0] = intention;
+        }
     }
 
 }
@@ -310,7 +333,7 @@ class IntentionRevisionRevise extends IntentionRevision {
  * Start intention revision loop
  */
 
-// const myAgent = new IntentionRevisionQueue();    // when I push an intention, it will be the last of the queue
-const myAgent = new IntentionRevisionReplace();     // when I push an intention, it replace the old one
+const myAgent = new IntentionRevisionQueue();    // when I push an intention, it will be the last of the queue
+// const myAgent = new IntentionRevisionReplace();     // when I push an intention, it replace the old one
 // const myAgent = new IntentionRevisionRevise();   
 myAgent.loop();
