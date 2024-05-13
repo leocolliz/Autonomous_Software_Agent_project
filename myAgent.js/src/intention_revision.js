@@ -125,8 +125,17 @@ let carrying = false;
 client.onParcelsSensing( parcels => {
 
     // TODO revisit beliefset revision so to trigger option generation only in the case a new parcel is observed
-    // if((newParcels || myAgent.intention_queue.length == 0) || storedParcels.length == 0){
+    // const buffer = myAgent.intention_queue.filter((intention)=>{
+    //         // console.log(intention)
+    //         return parcels.some((parcel)=>{
+    //             return parcel.x == intention [1] && parcel.y == intention[2] && intention[0] == 'go_pick_up'
+    //         })
     
+    // })
+    // myAgent.intention_queue = buffer;
+    
+    // console.log(myAgent.intention_queue);
+
     /**
      * Options generation
      */
@@ -187,7 +196,6 @@ client.onParcelsSensing( parcels => {
 
     if ( best_option ){
         myAgent.push( best_option );
-        // myAgent.push( [ 'go_deliver' ]);
     }
     // }
 
@@ -206,10 +214,11 @@ class IntentionRevision {
     get intention_queue () {
         return this.#intention_queue;
     }
-
+    set intention_queue ( buffer ){
+        this.#intention_queue = [...buffer];
+    }
     async loop ( ) {
         while ( true ) {
-            // console.log("INTENTION QUEUE LENGTH: ", this.intention_queue.length);
 
             // Consumes intention_queue if not empty
             if ( this.intention_queue.length > 0 ) {
@@ -281,7 +290,6 @@ class IntentionRevision {
 class IntentionRevisionQueue extends IntentionRevision {
 
     async push ( predicate ) {
-        
         // Check if already queued
         if ( this.intention_queue.find( (i) => i.predicate.join(' ') == predicate.join(' ') ) )
             return; // intention is already queued
@@ -293,6 +301,7 @@ class IntentionRevisionQueue extends IntentionRevision {
         }else{
             this.intention_queue[0] = intention;
         }
+        console.log("QUEUE:", this.intention_queue);
     }
 
 }
@@ -308,7 +317,6 @@ class IntentionRevisionReplace extends IntentionRevision {
         console.log( 'IntentionRevisionReplace.push', predicate );
         const intention = new Intention( this, predicate );
         this.intention_queue.push( intention );
-        
         // Force current intention stop 
         if ( last ) {
             last.stop();
